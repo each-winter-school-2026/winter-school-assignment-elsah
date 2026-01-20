@@ -1,0 +1,43 @@
+{
+"affinity_depletion": {
+"id": "affinity_depletion",
+"title": "Affinity Depletion",
+"subtitle": "Remove high-abundance proteins",
+"icon": "icons/modules/antibody.svg",
+"settings": {
+    "Depletion Target": {
+        "formtype": "ChoiceField",
+        "options": {"Pierce Albumin Serum Depletion Kits": [["ALBU_HUMAN", 99.35]],
+                    "High-Select HSA/Immunoglobulin Depletion Spin Columns":
+                    [["ALBU_HUMAN", 99.35],
+                    ["Group:IG-constant", 99.62],
+                    ["Group:IG-variable", 99.62]],
+                    "High-Select Top14 Abundant Protein Depletion Spin Columns":
+                    [["ALBU_HUMAN", 99.35],
+                    ["Group:IG-constant", 99.62],
+                    ["Group:IG-variable", 99.62],
+                    ["A1AG1_HUMAN", 99.00],
+                    ["A1AG2_HUMAN", 99.00],
+                    ["FIBA_HUMAN", 99.00],
+                    ["FIBB_HUMAN", 99.00],
+                    ["FIBG_HUMAN", 99.00],
+                    ["HPT_HUMAN", 99.00],
+                    ["HPTR_HUMAN", 99.00],
+                    ["A1AT_HUMAN", 96.00],
+                    ["A2MG_HUMAN", 99.00],
+                    ["TRFE_HUMAN", 99.00],
+                    ["APOA1_HUMAN", 99.00]]
+                    }
+                },
+    "Use custom depletion percentage": {
+        "formtype": "BooleanField",
+        "default": false},
+    "Custom Depletion Percentage": {
+        "formtype": "DecimalField",
+        "default": 0.0,
+        "required": false,
+        "min": 0.0,
+        "max": 100.0}
+        }
+    }
+}

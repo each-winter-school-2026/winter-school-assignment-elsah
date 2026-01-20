@@ -1,0 +1,21 @@
+{
+"molecular_weight_cutoff": {
+"id": "molecular_weight_cutoff",
+"title": "Molecular Weight Cutoff",
+"subtitle": "Deplete proteins above or below a certain molecular weight",
+"icon": "icons/modules/centrifuge.svg",
+"settings": {
+    "Weight Cutoff (kDa)": {
+        "formtype": "DecimalField",
+        "default": 30.0,
+        "min": 0.0,
+        "max": 1000.0,
+        "step": 0.5},
+    "Keep Below/Above Cutoff": {
+        "formtype": "ChoiceField",
+        "options": {"Keep everything below cutoff": "below",
+                    "Keep everything above cutoff": "above"}
+                                }
+            }
+        }
+}

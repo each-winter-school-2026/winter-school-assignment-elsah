@@ -1,0 +1,27 @@
+{
+"reversed_phase_chromatography": {
+"id": "reversed_phase_chromatography",
+"title": "Reversed Phase Chromatography",
+"subtitle": "Separate proteins based on hydrophobicity",
+"icon": "icons/modules/waterRepulsion.svg",
+"settings": {
+    "Keep inside/outside hydrophobicity range": {
+        "formtype": "ChoiceField",
+        "options": {"Keep proteins inside range": "inside",
+                    "Keep proteins outside range": "outside"}
+        },
+    "Minimum hydrophobicity": {
+        "formtype": "DecimalField",
+        "default": -3,
+        "min": -5.0,
+        "max": 5.0,
+        "step": 0.05},
+    "Maximum hydrophobicity": {
+        "formtype": "DecimalField",
+        "default": 3,
+        "min": -5.0,
+        "max": 5,
+        "step": 0.05}
+        }
+    }
+}

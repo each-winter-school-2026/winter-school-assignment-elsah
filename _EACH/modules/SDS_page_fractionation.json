@@ -1,0 +1,27 @@
+{
+"SDS_page_fractionation": {
+"id": "SDS_page_fractionation",
+"title": "SDS Page Fractionation",
+"subtitle": "Seperate proteins based on molecular weight",
+"icon": "icons/modules/gelElectrophoresis.svg",
+"settings": {
+    "Keep inside/outside molecular weight range": {
+        "formtype": "ChoiceField",
+        "options": {"Keep proteins inside range": "inside",
+                    "Keep proteins outside range": "outside"}
+        },
+    "Minimum weight (kDa)": {
+        "formtype": "DecimalField",
+        "default": 30,
+        "min": 0,
+        "max": 300,
+        "step": 1},
+    "Maximum weight (kDa)": {
+        "formtype": "DecimalField",
+        "default": 90,
+        "min": 0,
+        "max": 300,
+        "step": 1}
+        }
+    }
+}

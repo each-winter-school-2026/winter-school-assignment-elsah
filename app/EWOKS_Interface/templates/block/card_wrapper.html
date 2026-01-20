@@ -1,0 +1,86 @@
+{% load static %}
+{% load widget_tweaks %}
+
+{% if not insertionMode or not card.preventDeletion %}
+<div id="{{ card.id }}_wrapper" class = "collectableCard {% if card.draggable != False and not insertionMode %}draggable-card{% endif %}" {% if card.draggable != False and not insertionMode %}draggable="true"{% endif %} data-card-id="{{ card.id }}" data-module-type="{{ card.id }}" data-instance-id="{{ card.instance_id|default:card.id }}" {% if insertionMode %}onclick="selectCurrentCard(this)"{% endif %}>
+    <div class="card mb-3 h-100"  id="{{ card.id }}_card">
+    {% comment %} <div class="card-header">ID: {{ card.id }}</div>  {% endcomment %}
+        <div class="row row-cols-1">
+            <div class="col-md-2 pe-0" height="100" width="100">
+            <img src="{% static card.icon %}" class="img-fluid rounded-start" height="100" width="100" alt="...">
+            </div>
+            <div class="col-md-9 ps-0">
+                <div class="card-body">
+                    <h5 class="card-title"><b>{{ card.title }}</b></h5>
+                    <p class="card-text">{{ card.subtitle }}</p>
+                </div>
+            </div>
+            <div class="col-md-1" height="25" width="25">
+                <button id="settingsButton" {% if insertionMode  %} disabled aria-disabled="true" class="invisible btn p-0 border-0 bg-transparent" {% endif %} type="button" data-bs-toggle="modal" data-bs-target="#{{card.id}}_settingsModal" class="btn p-0 border-0 bg-transparent">
+                    <img src="{% static 'icons/settingsIcon.svg' %}" class="img-fluid rounded-start" height="25" width="25" alt="Settings">
+                </button>
+            </div>
+        </div>
+    </div>
+
+    {# Keep module type with instance in the POST #}
+    <input type="hidden" name="ModuleType:{{ card.instance_id|default:card.id }}" value="{{ card.id }}">
+
+{% comment %} Settings for Modules {% endcomment %}
+    <div class="modal fade" tabindex="-1" id="{{card.id}}_settingsModal" draggable="false" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog" draggable="false">
+            <div class="modal-content" draggable="false">
+                <div class="modal-header">
+                    <div class="col-md-11">
+                        <h5 class="modal-title">Settings: {{ card.title }}</h5>
+                    </div>
+                    <div class="col-md-2">
+                        <button {% if card.preventDeletion == True %} disabled {% endif %} type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#{{card.id}}_deleteModal">
+                            <img src="{% static 'icons/trash.svg' %}" class="img-fluid rounded-start" height="10" width="20" alt="...">
+                        </button>
+                    </div>
+                </div>
+                <div class="modal-body">
+                    {% for field in card.form %}
+                        <div class="mb-3">
+                            {{ field.label_tag }}
+                            {{ field }}
+                            <input type="hidden" name="Field:{{card.id}}" value="{{ field.name }}">
+                            {% if field.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ field.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Discard changes</button>
+                    <button type="button" class="btn btn-primary" data-role="modal-save">Save changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% comment %} Are you sure to delete module modal? {% endcomment %}
+
+    <div class="modal" draggable="false" tabindex="-1" id="{{card.id}}_deleteModal">
+        <div class="modal-dialog" draggable="false">
+            <div class="modal-content" draggable="false">
+                <div class="modal-header">
+                    <h5 class="modal-title">Delete module "{{ card.title }}"</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to delete the module "{{ card.title }}"?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" onclick="deleteCard(this)">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endif %}

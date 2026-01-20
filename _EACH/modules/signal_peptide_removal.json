@@ -1,0 +1,14 @@
+{
+"signal_peptide_removal": {
+"id": "signal_peptide_removal",
+"title": "Signal Peptide Removal",
+"subtitle": "Cleave signal peptides from sequences",
+"icon": "icons/modules/peptide.svg",
+"settings": {
+    "Database": {
+        "formtype": "ChoiceField",
+        "options": {"UniProt": "uniprot"}
+                }
+        }
+    }
+}

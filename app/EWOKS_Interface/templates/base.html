@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+        <meta http-equiv="Pragma" content="no-cache">
+        <meta http-equiv="Expires" content="0">
+
+        <title>EWOKS</title>
+        <link rel="stylesheet" href="{% static 'css/index.css' %}">
+        {% comment %} Bootstrap Code {% endcomment %}
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    
+      </head>
+    <body>
+      {% comment %} Navbar code {% endcomment %}
+        <nav class="navbar navbar-expand-lg bg-body-tertiary rounded" aria-label="EWOKS Navbar">
+          <div class="container-fluid">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mobileNavbar" aria-controls="mobileNavbar" aria-expanded="false" aria-label="Toggle navigation">
+              <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse d-lg-flex" id="mobileNavbar">
+              <a class="navbar-brand col-lg-3 me-0" href="#">[EWOKS] Experimental Workflow Optimization through Knowledge Synthesis</a>
+              <ul class="navbar-nav col-lg-8 justify-content-lg-end">
+                <li class="nav-item"><a class="nav-link active" aria-current="page" href="#">Home</a></li>
+                <li class="nav-item"><a class="nav-link" href="#"><s>Modules</s></a></li>
+                <li class="nav-item dropdown">
+                  <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown" aria-expanded="false" ><s>About</s></a>
+                  <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="#"><s>Documentation</s></a></li>
+                    <li><a class="dropdown-item" href="#"><s>Credits</s></a></li>
+                  </ul>
+                </li>
+              </ul>
+              {% comment %} <div class="d-lg-flex col-lg-3 justify-content-lg-end">
+                <button class="btn btn-primary">Button</button>
+              </div> {% endcomment %}
+            </div>
+          </div>
+        </nav>
+        {% block content %}
+        {% endblock %}
+        
+        {% comment %} Bootstrap JS {% endcomment %}
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+        <script src="{% static 'js/index.js' %}"></script>
+        {% block scriptFooter %}
+
+        {% endblock %}
+      </body>
+</html>

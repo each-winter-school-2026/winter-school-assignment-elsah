@@ -1,0 +1,104 @@
+{% extends 'base.html' %} 
+{% load static %}
+{% load widget_tweaks %}
+{% load cardGenerator %}
+
+{% block content %}
+
+<div class="container-fluid p-4" id="card-container">
+  <div class="row my-1 p-1">
+    <div id="breadcrumbs">
+      {% for card in renderCards %}
+        {{ card.title }} ->
+      {% endfor %}
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-4 border rounded bg-light p-2">
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <input type="hidden" name="module_order" id="module_order" value="[OVERWRITTEN_BY_JS]">
+
+        {% comment %} Module order START {% endcomment %}
+        <div id="cards-list">
+          {% for card in renderCards %}
+            {% generateCard card=card %}
+          {% endfor %}
+
+
+        </div>
+          <!-- Add Module Card -->
+          <div id="add-module-wrapper" class="" data-card-id="add-module">
+            <div class="card mb-3 h-100 border-2 border-dashed border-primary" id="add-module-card">
+              <div type="button" class="card-body d-flex align-items-center justify-content-center" data-bs-toggle="modal" data-bs-target="#addModuleModal">
+                <img src="{% static 'icons/add.svg' %}" class="bi bi-plus-circle mx-3">
+                <h5 class="card-title" style="color: #0d6efd;">Add Module</h5>
+              </div>
+            </div>
+          </div>
+
+        <div class="d-grid gap-2">
+          <button id="runEWOKSbtn" type="submit" class="btn btn-primary">Run</button>
+        </div>
+      </form>
+      {% comment %} Module order END {% endcomment %}
+    </div>
+
+    <div class="col-md-5 row-cols-1">
+      <div id="SDS-page-container" class="border rounded bg-light p-2">
+        {% for img in sdspageimg %}
+          <div id="sdsimg" class="border mb-3">
+            <img src="data:image/png;base64,{{ img }}" class="img-fluid w-100 object-fit-contain" alt="SDS-PAGE result">
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% comment %} Add new module modal {% endcomment %}
+
+<div class="modal fade" id="addModuleModal" tabindex="-1" aria-labelledby="addModuleModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h1 class="modal-title fs-5" id="addModuleModalLabel">Select module to insert</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="module-selection-body">
+        {% for module in insertableModules %}
+            {% generateCard card=module insertionMode=True %}
+          {% endfor %}
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="unselectAllCards()">Close</button>
+        <button type="button" class="btn btn-primary" data-bs-dismiss="modal" onclick="insertCard()">Insert module</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const moduleCard = document.querySelector('#card-container .col-4 .card');
+    const imageCards = document.querySelectorAll('#SDS-page-container #sdsimg');
+    if (!moduleCard || !imageCards.length) return;
+
+    const targetHeight = moduleCard.getBoundingClientRect().height;
+    imageCards.forEach(card => {
+      card.style.height = `${targetHeight}px`;
+      const img = card.querySelector('img');
+      if (img) {
+        img.classList.add('h-100', 'w-100', 'object-fit-contain');
+      }
+    });
+  });
+</script>
+
+{% endblock content %}
+
+{% block scriptFooter %}
+<script src="{% static 'js/modal.js' %}"></script>
+<script src="{% static 'js/card.js' %}"></script>
+<script src="{% static 'js/insertCard.js' %}"></script>
+{% endblock %}

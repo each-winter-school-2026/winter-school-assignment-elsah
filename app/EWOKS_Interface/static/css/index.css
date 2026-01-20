@@ -1,0 +1,21 @@
+.draggable-card {
+    cursor: move;
+    transition: opacity 0.2s;
+}
+  
+.draggable-card.dragging {
+    opacity: 0.5;
+}
+  
+.draggable-card.drag-over {
+    border: 2px dashed #0d6efd;
+    background-color: #f8f9fa;
+}
+
+.selected-card {
+    border: 2px solid #c42525 !important;
+}
+
+.invisible {
+    display: none;
+}

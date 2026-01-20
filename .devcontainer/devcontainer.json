@@ -1,0 +1,25 @@
+{
+  "name": "EWOKS Python container",
+  "image": "mcr.microsoft.com/devcontainers/python:3",
+  "features": {},
+  "postCreateCommand": "bash codespaces_startup/startup.sh",
+  "remoteEnv": {
+    "PYTHONPATH": "${containerWorkspaceFolder}"
+  },
+  "customizations": {
+  "codespaces": {
+    "openFiles": [
+      "_EACH/EACH_WINTER_SCHOOL.md"
+    ]
+  },
+  "vscode": {
+      "settings": {
+        "workbench.editorAssociations": {
+            "*.md": "vscode.markdown.preview.editor"
+        }
+    }
+}
+}
+}
+
+

@@ -1,0 +1,19 @@
+{
+"fasta_input": {
+"id": "fasta_input",
+"title": "FASTA Input",
+"subtitle": "Select an example FASTA file",
+"icon": "icons/modules/fileUpload.svg",
+"draggable": false,
+"preventDeletion": true,
+"settings": {
+    "Select FASTA file": {
+        "formtype": "ChoiceField",
+        "options": {"Human blood serum": "data/proteomes/Human/humanProteome_bloodSerumAbundance.fasta",
+                    "Arabidopsis leaf": "data/proteomes/Arabidopsis/proteomeArabidopsis_with_abundance.fasta",
+                    "Three protein Proteome - Human blood serum": "data/proteomes/Human/humanThreeProtein_bloodSerumAbundance.fasta"
+                }
+            }
+        }
+    }
+}
