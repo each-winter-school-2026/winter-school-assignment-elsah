@@ -98,7 +98,6 @@ def size_exclusion(moduleIdentifier, selectedSettings, moduleData):
         _apply_window(col_range[0], col_range[1], label=chosen_label)
         return Protein.getAllProteins()
 
-    # ---------------- recommend ----------------
     if sec_mode == "recommend":
         user_min = float(extractSetting("Target minimum MW (kDa)", moduleIdentifier, selectedSettings, moduleData))
         user_max = float(extractSetting("Target maximum MW (kDa)", moduleIdentifier, selectedSettings, moduleData))
@@ -114,10 +113,10 @@ def size_exclusion(moduleIdentifier, selectedSettings, moduleData):
                 a, b = b, a
             total = 0.0
             for p in proteins:
-                ab = _get_abundance(p)
-                if ab <= 0.0:
+                ab = p.get_abundance()
+                if ab is None or ab <= 0.0:
                     continue
-                w = _get_weight_kda(p)
+                w = p.get_weight()
                 if w is None:
                     continue
                 if a <= w <= b:
@@ -125,8 +124,8 @@ def size_exclusion(moduleIdentifier, selectedSettings, moduleData):
             return total
 
         best_label = None
-        best_eff_min = None
-        best_eff_max = None
+        best_col_min = None
+        best_col_max = None
         best_score = -1.0
 
         for label, rng in options.items():
@@ -134,31 +133,29 @@ def size_exclusion(moduleIdentifier, selectedSettings, moduleData):
             if col_min > col_max:
                 col_min, col_max = col_max, col_min
 
+            # Scoring window depends on user target range (intersection)
             eff_min = max(col_min, user_min)
             eff_max = min(col_max, user_max)
             if eff_min > eff_max:
                 continue
 
-            in_target = abundance_in_window(eff_min, eff_max)
-            in_column = abundance_in_window(col_min, col_max)
+            in_target = abundance_in_window(eff_min, eff_max)     # proteins in the requested target slice
+            in_column = abundance_in_window(col_min, col_max)     # proteins that the column would pass in total
             if in_column <= 0.0:
                 continue
 
-            score = in_target / in_column  # purity
+            score = in_target / in_column  # "portion" (purity) of target-range proteins in the column output
+
             if score > best_score:
                 best_score = score
                 best_label = label
-                best_eff_min, best_eff_max = eff_min, eff_max
+                best_col_min = col_min
+                best_col_max = col_max
 
-        # If nothing matches, leave proteins unchanged
         if best_label is None:
-            for p in Protein.getAllProteins():
-                p.modifications.append("SEC: no suitable column found for target window")
             return Protein.getAllProteins()
         selectedSettings["SEC column"] = best_label
-
-        _apply_window(best_eff_min, best_eff_max, label=best_label)
+        # IMPORTANT: filter depends ONLY on the column capacity, not on user range
+        _apply_window(best_col_min, best_col_max, label=best_label)
         return Protein.getAllProteins()
-
-    raise ValueError(f"Invalid SEC mode: {sec_mode}")
 

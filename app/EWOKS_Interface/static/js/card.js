@@ -144,3 +144,5 @@ function deleteCard(buttonObject) {
   saveCardOrder();
   resetAllCardNumbering();
 }
+
+
