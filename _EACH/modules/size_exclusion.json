@@ -14,31 +14,29 @@
         "default": "Simulate (choose a column)",
         "required": false
       },
-
       "SEC column": {
         "formtype": "ChoiceField",
         "options": {
-          "TSKgel G3000SWXL -- 250 Å (10--500 kDa)": [10.0, 500.0],
-          "TSKgel G4000SWXL -- 400 Å (10--7000 kDa)": [10.0, 7000.0],
-          "ACQUITY UPLC Protein BEH -- 200 Å (10--450 kDa)": [10.0, 450.0],
-          "ACQUITY UPLC Protein BEH -- 450 Å (100--1500 kDa)": [100.0, 1500.0],
-          "BioResolve SEC mAb -- 200 Å (10--450 kDa)": [10.0, 450.0],
-          "GTxResolve / XBridge Premier BEH -- 450 Å (10--10000 kDa)": [10.0, 10000.0],
-          "Bio SEC-3 -- 100 Å (0.1--100 kDa)": [0.1, 100.0],
-          "Bio SEC-3 -- 150 Å (0.5--150 kDa)": [0.5, 150.0],
-          "Bio SEC-3 -- 300 Å (5--1250 kDa)": [5.0, 1250.0],
-          "AdvanceBio SEC -- 500 Å (5--5000 kDa)": [5.0, 5000.0],
-          "YMC-Pack Diol -- 200 Å (5--300 kDa)": [5.0, 300.0],
-          "YMC-Pack Diol -- 300 Å (20--1000 kDa)": [20.0, 1000.0],
-          "Zenix-SEC -- 80 Å (0.1--50 kDa)": [0.1, 50.0],
-          "Zenix-SEC -- 100 Å (0.1--66 kDa)": [0.1, 66.0],
-          "Zenix-SEC -- 150 Å (0.5--150 kDa)": [0.5, 150.0],
-          "Zenix-SEC -- 300 Å (5--1250 kDa)": [5.0, 1250.0]
+          "TSKgel G3000SWXL – 250 Å (10–500 kDa)": [10.0, 500.0],
+          "TSKgel G4000SWXL – 400 Å (10–7000 kDa)": [10.0, 7000.0],
+          "ACQUITY UPLC Protein BEH – 200 Å (10–450 kDa)": [10.0, 450.0],
+          "ACQUITY UPLC Protein BEH – 450 Å (100–1500 kDa)": [100.0, 1500.0],
+          "BioResolve SEC mAb – 200 Å (10–450 kDa)": [10.0, 450.0],
+          "GTxResolve / XBridge Premier BEH – 450 Å (10–10000 kDa)": [10.0, 10000.0],
+          "Bio SEC-3 – 100 Å (0.1–100 kDa)": [0.1, 100.0],
+          "Bio SEC-3 – 150 Å (0.5–150 kDa)": [0.5, 150.0],
+          "Bio SEC-3 – 300 Å (5–1250 kDa)": [5.0, 1250.0],
+          "AdvanceBio SEC – 500 Å (5–5000 kDa)": [5.0, 5000.0],
+          "YMC-Pack Diol – 200 Å (5–300 kDa)": [5.0, 300.0],
+          "YMC-Pack Diol – 300 Å (20–1000 kDa)": [20.0, 1000.0],
+          "Zenix-SEC – 80 Å (0.1–50 kDa)": [0.1, 50.0],
+          "Zenix-SEC – 100 Å (0.1–66 kDa)": [0.1, 66.0],
+          "Zenix-SEC – 150 Å (0.5–150 kDa)": [0.5, 150.0],
+          "Zenix-SEC – 300 Å (5–1250 kDa)": [5.0, 1250.0]
         },
-        "default": "BioResolve SEC mAb -- 200 Å (10--450 kDa)",
+        "default": "BioResolve SEC mAb – 200 Å (10–450 kDa)",
         "required": false
       },
-
       "Target minimum MW (kDa)": {
         "formtype": "DecimalField",
         "default": 20.0,
