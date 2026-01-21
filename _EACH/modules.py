@@ -72,54 +72,93 @@ def fasta_input(moduleIdentifier, selectedSettings,moduleData):
 
 def size_exclusion(moduleIdentifier, selectedSettings, moduleData):
     """
-    Size Exclusion Chromatography (SEC) fractionation (column-spec-only version).
+    SEC module with 2 modes:
 
-    Uses settings EXACTLY as named in size_exclusion.json:
-    - "Fractionation mode" -> "inside" or "outside"
-    - "SEC column" -> [col_min_kDa, col_max_kDa]
+    - simulate:
+        user chooses a single column -> apply filtering using that column MW range.
 
-    Model:
-    - The manufacturer column MW range is treated as the allowed SEC fractionation window.
-    - "inside": keep proteins within the column range (remove outside).
-    - "outside": remove proteins within the column range (keep outside).
-    - No user-defined MW narrowing is applied.
+    - recommend:
+        user gives target MW window -> choose the best column by fractional recovery:
+            score = (abundance in effective target window) / (abundance in column window)
+        then apply filtering using the BEST column only.
+
+    Output: returns Protein.getAllProteins().
     """
 
+    sec_mode = extractSetting("SEC mode", moduleIdentifier, selectedSettings, moduleData)
     keepInsideOutside = extractSetting("Fractionation mode", moduleIdentifier, selectedSettings, moduleData)
 
-    col_range = extractSetting("SEC column", moduleIdentifier, selectedSettings, moduleData)
-    if not isinstance(col_range, (list, tuple)) or len(col_range) != 2:
-        raise ValueError("SEC column setting must resolve to [min_kDa, max_kDa].")
+    def _apply_window(wmin, wmax):
+        wmin, wmax = float(wmin), float(wmax)
+        if wmin > wmax:
+            wmin, wmax = wmax, wmin
+        wmin = max(wmin, 0.0)
+        wmax = max(wmax, 0.0)
 
-    col_min, col_max = float(col_range[0]), float(col_range[1])
-    # Sanity: ensure ordering and non-negative
-    if col_min > col_max:
-        col_min, col_max = col_max, col_min
-    col_min = max(col_min, 0.0)
-    col_max = max(col_max, 0.0)
+        Protein.fractionateProteinsByMolecularWeight(
+            keepInsideOutsideSelection=keepInsideOutside,
+            minWeight=wmin,
+            maxWeight=wmax,
+        )
 
-    if keepInsideOutside not in ("inside", "outside"):
-        raise ValueError(f"Invalid Fractionation mode: {keepInsideOutside}")
+    # -------- simulate mode --------
+    if sec_mode == "simulate":
+        col_range = extractSetting("SEC column", moduleIdentifier, selectedSettings, moduleData)
+        if not isinstance(col_range, (list, tuple)) or len(col_range) != 2:
+            raise ValueError("SEC column setting must resolve to [min_kDa, max_kDa].")
+        _apply_window(col_range[0], col_range[1])
+        return Protein.getAllProteins()
 
-    # Apply MW fractionation using existing helper
-    Protein.fractionateProteinsByMolecularWeight(
-        keepInsideOutsideSelection=keepInsideOutside,
-        minWeight=col_min,
-        maxWeight=col_max,
-    )
+    # -------- recommend mode --------
+    if sec_mode == "recommend":
+        user_min = float(extractSetting("Target minimum MW (kDa)", moduleIdentifier, selectedSettings, moduleData))
+        user_max = float(extractSetting("Target maximum MW (kDa)", moduleIdentifier, selectedSettings, moduleData))
+        if user_min > user_max:
+            user_min, user_max = user_max, user_min
 
-    # Optional: annotate kept proteins (or action taken)
-    for p in Protein.getAllProteins():
-        if p.get_abundance() > 0.0:
-            p.modifications.append(
-                f"SEC kept by column window {col_min}-{col_max} kDa"
-            )
-        else:
-            p.modifications.append(
-                f"SEC filtered by column window {col_min}-{col_max} kDa (mode={keepInsideOutside})"
-            )
+        # label -> [min,max]
+        options = moduleData[moduleIdentifier]["settings"]["SEC column"]["options"]
+        proteins = Protein.getAllProteins()
 
-    return Protein.getAllProteins()
+        def sum_abundance_in_window(wmin, wmax):
+            total = 0.0
+            for p in proteins:
+                ab = p.get_abundance()
+                if ab is None or ab <= 0.0:
+                    continue
+                w = p.get_weight()
+                if w is None:
+                    continue
+                if wmin <= w <= wmax:
+                    total += ab
+            return total
+
+        best_score = -1.0
+        best_eff_min = None
+        best_eff_max = None
+
+        for _, rng in options.items():
+            col_min, col_max = float(rng[0]), float(rng[1])
+            if col_min > col_max:
+                col_min, col_max = col_max, col_min
+
+            eff_min = max(col_min, user_min)
+            eff_max = min(col_max, user_max)
+
+            denom = sum_abundance_in_window(col_min, col_max)
+            numer = 0.0 if eff_min > eff_max else sum_abundance_in_window(eff_min, eff_max)
+
+            score = 0.0 if denom <= 0.0 else (numer / denom)
+
+            if score > best_score:
+                best_score = score
+                best_eff_min, best_eff_max = eff_min, eff_max
+
+        # Apply best effective window (can be empty -> consistent behavior)
+        _apply_window(best_eff_min, best_eff_max)
+        return Protein.getAllProteins()
+
+    raise ValueError(f"Invalid SEC mode: {sec_mode}")
 
 
 def affinity_depletion(moduleIdentifier, selectedSettings,moduleData):

@@ -2,9 +2,18 @@
   "size_exclusion": {
     "id": "size_exclusion",
     "title": "Size Exclusion Chromatography",
-    "subtitle": "Compare outcomes across multiple SEC columns",
+    "subtitle": "Recommend a column for a target MW range or simulate a chosen column",
     "icon": "icons/modules/placeholder.svg",
     "settings": {
+      "SEC mode": {
+        "formtype": "ChoiceField",
+        "options": {
+          "Recommend best columns for a target MW range": "recommend",
+          "Simulate one selected column": "simulate"
+        },
+        "default": "Recommend the best column for a target MW range",
+        "required": true
+      },
       "Fractionation mode": {
         "formtype": "ChoiceField",
         "options": {
@@ -13,6 +22,20 @@
         },
         "default": "Keep proteins within column fractionation range",
         "required": true
+      },
+      "Target minimum MW (kDa)": {
+        "formtype": "DecimalField",
+        "default": 20.0,
+        "min": 0.0,
+        "max": 100000.0,
+        "step": 1.0
+      },
+      "Target maximum MW (kDa)": {
+        "formtype": "DecimalField",
+        "default": 80.0,
+        "min": 0.0,
+        "max": 100000.0,
+        "step": 1.0
       },
       "SEC column": {
         "formtype": "ChoiceField",
@@ -34,9 +57,7 @@
           "Zenix-SEC – 150 Å (0.5–150 kDa)": [0.5, 150.0],
           "Zenix-SEC – 300 Å (5–1250 kDa)": [5.0, 1250.0]
         },
-        "default": [
-          "ACQUITY UPLC Protein BEH – 200 Å (10–450 kDa)"
-        ],
+        "default": "ACQUITY UPLC Protein BEH – 200 Å (10–450 kDa)",
         "required": true
       }
     }

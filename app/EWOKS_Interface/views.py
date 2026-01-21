@@ -48,13 +48,22 @@ class IndexView(TemplateView):
             settings = instanceSettings.get(instanceId, {})
             # Execute module
             sdsPageImgBase64 = EWOKS_modules.select(module, settings, moduleData)
+            # Store a human-readable label for SEC
+            column_label = None
+            if module == "size_exclusion":
+                column_label = settings.get("SEC column") or settings.get("SEC columns")
+
             
             if not sdsPageImgBase64:
                 img_path = Path('app/EWOKS_Interface/static/img/sdsNoImgSupplied.png')
                 with open(img_path, 'rb') as img_file:
                     sdsPageImgBase64 = base64.b64encode(img_file.read()).decode('utf-8')
             
-            sdsPageImages.append(sdsPageImgBase64)
+            sdsPageImages.append({
+                "img": sdsPageImgBase64,
+                "column_label": column_label
+            })
+
 
             # Update defaults used to re-render the form
             for userSelectedSetting, selectedValue in settings.items():

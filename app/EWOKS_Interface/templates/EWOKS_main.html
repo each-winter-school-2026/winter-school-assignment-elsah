@@ -46,11 +46,28 @@
 
     <div class="col-md-5 row-cols-1">
       <div id="SDS-page-container" class="border rounded bg-light p-2">
-        {% for img in sdspageimg %}
-          <div id="sdsimg" class="border mb-3">
-            <img src="data:image/png;base64,{{ img }}" class="img-fluid w-100 object-fit-contain" alt="SDS-PAGE result">
+        {% for item in sdspageimg %}
+          <div id="sdsimg" class="border mb-3 p-2">
+
+            {% if forloop.first %}
+              <div class="fw-bold text-center mb-1">
+                Before SEC
+              </div>
+            {% else %}
+              <div class="fw-bold text-center mb-1">
+                After SEC
+                {% if item.column_label %}
+                  — {{ item.column_label }}
+                {% endif %}
+              </div>
+            {% endif %}
+
+            <img src="data:image/png;base64,{{ item.img }}"
+                class="img-fluid w-100 object-fit-contain"
+                alt="SDS-PAGE result">
           </div>
         {% endfor %}
+
       </div>
     </div>
   </div>
