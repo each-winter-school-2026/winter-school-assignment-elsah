@@ -1,5 +1,10 @@
-Describe your module in 100 words below:
+Name of module: Size exclusion chromatography modeling
 
-Name of module:
-
+The Size Exclusion Chromatography (SEC) module simulates protein fractionation using realistic, 
+manufacturer-specified SEC columns. Users select one column at a time from an extended list covering 
+a wide range of pore sizes and molecular-weight separation windows. The model assumes ideal SEC 
+behavior and relies exclusively on the published fractionation range of the chosen column. Proteins
+are retained or removed based on whether their molecular weight falls inside or outside the column’s
+specified range. The output is a single SDS-PAGE image representing the expected SEC fraction, providing
+a clear and physically motivated comparison between different column choices.
 
