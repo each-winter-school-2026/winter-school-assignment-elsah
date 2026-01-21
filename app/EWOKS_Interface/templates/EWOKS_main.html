@@ -96,20 +96,99 @@
 </div>
 
 <script>
-  document.addEventListener('DOMContentLoaded', () => {
-    const moduleCard = document.querySelector('#card-container .col-4 .card');
-    const imageCards = document.querySelectorAll('#SDS-page-container #sdsimg');
-    if (!moduleCard || !imageCards.length) return;
+document.addEventListener("DOMContentLoaded", () => {
 
-    const targetHeight = moduleCard.getBoundingClientRect().height;
-    imageCards.forEach(card => {
-      card.style.height = `${targetHeight}px`;
-      const img = card.querySelector('img');
-      if (img) {
-        img.classList.add('h-100', 'w-100', 'object-fit-contain');
+  // Find a field by its setting name, regardless of instance prefix.
+  // Works for: name="SEC mode" and name="<instanceId>:SEC mode"
+  function getFieldEl(cardEl, settingName) {
+    const suffix = ":" + settingName;
+    return (
+      cardEl.querySelector(`[name="${CSS.escape(settingName)}"]`) ||
+      cardEl.querySelector(`[name$="${CSS.escape(suffix)}"]`)
+    );
+  }
+
+  function getGroupEl(fieldEl) {
+    if (!fieldEl) return null;
+    return (
+      fieldEl.closest(".mb-3") ||
+      fieldEl.closest(".form-group") ||
+      fieldEl.closest(".row") ||
+      fieldEl.parentElement
+    );
+  }
+
+  function setGroupVisible(groupEl, visible) {
+    if (!groupEl) return;
+    groupEl.style.display = visible ? "" : "none";
+    groupEl.querySelectorAll("input, select, textarea").forEach(el => {
+      el.disabled = !visible;
+    });
+  }
+
+  function normalizeMode(v) {
+    // Value should be "simulate" or "recommend"
+    if (v === "recommend") return "recommend";
+    return "simulate";
+  }
+
+  function updateSEC(cardEl) {
+    const modeSelect = getFieldEl(cardEl, "SEC mode");
+    if (!modeSelect) return;
+
+    const mode = normalizeMode(modeSelect.value);
+
+    const colField = getFieldEl(cardEl, "SEC column");
+    const minField = getFieldEl(cardEl, "Target minimum MW (kDa)");
+    const maxField = getFieldEl(cardEl, "Target maximum MW (kDa)");
+
+    const colGroup = getGroupEl(colField);
+    const minGroup = getGroupEl(minField);
+    const maxGroup = getGroupEl(maxField);
+
+    if (mode === "simulate") {
+      setGroupVisible(colGroup, true);
+      setGroupVisible(minGroup, false);
+      setGroupVisible(maxGroup, false);
+    } else {
+      setGroupVisible(colGroup, false);
+      setGroupVisible(minGroup, true);
+      setGroupVisible(maxGroup, true);
+    }
+  }
+
+  function initCard(cardEl) {
+    const modeSelect = getFieldEl(cardEl, "SEC mode");
+    if (!modeSelect) return;
+
+    // Initial application
+    updateSEC(cardEl);
+
+    // Update on change
+    modeSelect.addEventListener("change", () => updateSEC(cardEl));
+  }
+
+  // Init existing cards
+  document.querySelectorAll("#cards-list .card").forEach(initCard);
+
+  // Cards are added dynamically (Insert module) -> observe and init new ones
+  const cardsList = document.getElementById("cards-list");
+  if (cardsList) {
+    const obs = new MutationObserver((mutations) => {
+      for (const m of mutations) {
+        for (const node of m.addedNodes) {
+          if (!(node instanceof HTMLElement)) continue;
+          if (node.classList && node.classList.contains("card")) {
+            initCard(node);
+          } else {
+            node.querySelectorAll && node.querySelectorAll(".card").forEach(initCard);
+          }
+        }
       }
     });
-  });
+    obs.observe(cardsList, { childList: true, subtree: true });
+  }
+});
 </script>
 
 {% endblock content %}

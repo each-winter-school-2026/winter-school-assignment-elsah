@@ -17,28 +17,7 @@ def select(moduleIdentifier,selectedSettings,moduleData):
     """
     match moduleIdentifier:
         case "fasta_input":
-            proteins = fasta_input(moduleIdentifier,selectedSettings,moduleData)
-            return virtualSDSPage_2DGaussian(proteins)
-        case "affinity_depletion":
-            proteins = affinity_depletion(moduleIdentifier,selectedSettings,moduleData)
-            return virtualSDSPage_2DGaussian(proteins)
-        case "molecular_weight_cutoff":
-            proteins = molecular_weight_cutoff(moduleIdentifier,selectedSettings,moduleData)
-            return virtualSDSPage_2DGaussian(proteins)
-        case "signal_peptide_removal":
-            proteins = signal_peptide_removal(moduleIdentifier,selectedSettings,moduleData)
-            return virtualSDSPage_2DGaussian(proteins)
-        case "isoelectric_focussing":
-            proteins = isoelectric_focussing(moduleIdentifier,selectedSettings,moduleData)
-            return virtualSDSPage_2DGaussian(proteins)
-        case "reversed_phase_chromatography":
-            proteins = reversed_phase_chromatography(moduleIdentifier,selectedSettings,moduleData)
-            return virtualSDSPage_2DGaussian(proteins)
-        case "SDS_page_fractionation":
-            proteins = SDS_page_fractionation(moduleIdentifier,selectedSettings,moduleData)
-            return virtualSDSPage_2DGaussian(proteins)
-        case "unique_module_identifier":
-            proteins = newModule(moduleIdentifier,selectedSettings,moduleData)
+            proteins = fasta_input(moduleIdentifier, selectedSettings, moduleData)
             return virtualSDSPage_2DGaussian(proteins)
         case "size_exclusion":
             proteins = size_exclusion(moduleIdentifier, selectedSettings, moduleData)
@@ -71,274 +50,115 @@ def fasta_input(moduleIdentifier, selectedSettings,moduleData):
     return proteinList
 
 def size_exclusion(moduleIdentifier, selectedSettings, moduleData):
-    """
-    SEC module with 2 modes:
-
-    - simulate:
-        user chooses a single column -> apply filtering using that column MW range.
-
-    - recommend:
-        user gives target MW window -> choose the best column by fractional recovery:
-            score = (abundance in effective target window) / (abundance in column window)
-        then apply filtering using the BEST column only.
-
-    Output: returns Protein.getAllProteins().
-    """
-
     sec_mode = extractSetting("SEC mode", moduleIdentifier, selectedSettings, moduleData)
-    keepInsideOutside = extractSetting("Fractionation mode", moduleIdentifier, selectedSettings, moduleData)
+    keepInsideOutside = "inside"
 
-    def _apply_window(wmin, wmax):
-        wmin, wmax = float(wmin), float(wmax)
-        if wmin > wmax:
-            wmin, wmax = wmax, wmin
-        wmin = max(wmin, 0.0)
-        wmax = max(wmax, 0.0)
+    def _get_abundance(p):
+        if hasattr(p, "get_abundance") and callable(p.get_abundance):
+            return float(p.get_abundance() or 0.0)
+        return float(getattr(p, "abundance", 0.0) or 0.0)
+
+    def _get_weight_kda(p):
+        # prefer attribute used elsewhere in your codebase
+        w = getattr(p, "weight", None)
+        if w is not None:
+            return float(w)
+        # fallback if getter exists
+        if hasattr(p, "get_weight") and callable(p.get_weight):
+            gw = p.get_weight()
+            if gw is not None:
+                return float(gw)
+        return None
+
+    def _apply_window(min_kda, max_kda, label=None):
+        min_kda = float(min_kda)
+        max_kda = float(max_kda)
+        if min_kda > max_kda:
+            min_kda, max_kda = max_kda, min_kda
+        min_kda = max(min_kda, 0.0)
+        max_kda = max(max_kda, 0.0)
 
         Protein.fractionateProteinsByMolecularWeight(
             keepInsideOutsideSelection=keepInsideOutside,
-            minWeight=wmin,
-            maxWeight=wmax,
+            minWeight=min_kda,
+            maxWeight=max_kda,
         )
 
-    # -------- simulate mode --------
+        if label:
+            for p in Protein.getAllProteins():
+                p.modifications.append(f"SEC: {label}")
+
+    # ---------------- simulate ----------------
     if sec_mode == "simulate":
         col_range = extractSetting("SEC column", moduleIdentifier, selectedSettings, moduleData)
         if not isinstance(col_range, (list, tuple)) or len(col_range) != 2:
-            raise ValueError("SEC column setting must resolve to [min_kDa, max_kDa].")
-        _apply_window(col_range[0], col_range[1])
+            raise ValueError("SEC column must resolve to [min_kDa, max_kDa].")
+
+        chosen_label = selectedSettings.get("SEC column", None)
+        _apply_window(col_range[0], col_range[1], label=chosen_label)
         return Protein.getAllProteins()
 
-    # -------- recommend mode --------
+    # ---------------- recommend ----------------
     if sec_mode == "recommend":
         user_min = float(extractSetting("Target minimum MW (kDa)", moduleIdentifier, selectedSettings, moduleData))
         user_max = float(extractSetting("Target maximum MW (kDa)", moduleIdentifier, selectedSettings, moduleData))
         if user_min > user_max:
             user_min, user_max = user_max, user_min
 
-        # label -> [min,max]
-        options = moduleData[moduleIdentifier]["settings"]["SEC column"]["options"]
+        options = moduleData[moduleIdentifier]["settings"]["SEC column"]["options"]  # label -> [min,max]
         proteins = Protein.getAllProteins()
 
-        def sum_abundance_in_window(wmin, wmax):
+        def abundance_in_window(a, b):
+            a = float(a); b = float(b)
+            if a > b:
+                a, b = b, a
             total = 0.0
             for p in proteins:
-                ab = p.get_abundance()
-                if ab is None or ab <= 0.0:
+                ab = _get_abundance(p)
+                if ab <= 0.0:
                     continue
-                w = p.get_weight()
+                w = _get_weight_kda(p)
                 if w is None:
                     continue
-                if wmin <= w <= wmax:
+                if a <= w <= b:
                     total += ab
             return total
 
-        best_score = -1.0
+        best_label = None
         best_eff_min = None
         best_eff_max = None
+        best_score = -1.0
 
-        for _, rng in options.items():
+        for label, rng in options.items():
             col_min, col_max = float(rng[0]), float(rng[1])
             if col_min > col_max:
                 col_min, col_max = col_max, col_min
 
             eff_min = max(col_min, user_min)
             eff_max = min(col_max, user_max)
+            if eff_min > eff_max:
+                continue
 
-            denom = sum_abundance_in_window(col_min, col_max)
-            numer = 0.0 if eff_min > eff_max else sum_abundance_in_window(eff_min, eff_max)
+            in_target = abundance_in_window(eff_min, eff_max)
+            in_column = abundance_in_window(col_min, col_max)
+            if in_column <= 0.0:
+                continue
 
-            score = 0.0 if denom <= 0.0 else (numer / denom)
-
+            score = in_target / in_column  # purity
             if score > best_score:
                 best_score = score
+                best_label = label
                 best_eff_min, best_eff_max = eff_min, eff_max
 
-        # Apply best effective window (can be empty -> consistent behavior)
-        _apply_window(best_eff_min, best_eff_max)
+        # If nothing matches, leave proteins unchanged
+        if best_label is None:
+            for p in Protein.getAllProteins():
+                p.modifications.append("SEC: no suitable column found for target window")
+            return Protein.getAllProteins()
+        selectedSettings["SEC column"] = best_label
+
+        _apply_window(best_eff_min, best_eff_max, label=best_label)
         return Protein.getAllProteins()
 
     raise ValueError(f"Invalid SEC mode: {sec_mode}")
-
-
-def affinity_depletion(moduleIdentifier, selectedSettings,moduleData):
-    """
-    Apply immunoaffinity depletion to targeted genes or gene groups, optionally with a custom percentage.
-
-    Settings (affinity_depletion.json):
-    - "Depletion Target" (ChoiceField): preset kits mapping to gene lists with default depletion %.
-    - "Use custom depletion percentage" (BooleanField): toggles custom % for all selected targets.
-    - "Custom Depletion Percentage" (DecimalField): custom percentage (0-100) applied when enabled.
-
-    :param moduleIdentifier: Identifier for the current module.
-    :param selectedSettings: Dict with depletion target selection and optional custom depletion percentage.
-    :param moduleData: Module definitions providing target options and gene-group mappings.
-    :return: Updated list of Protein objects after depletion.
-
-    """
-    # ChoiceField: resolve kit name to list of (target, default%) tuples
-    depletionTargets = extractSetting("Depletion Target",moduleIdentifier,selectedSettings,moduleData)
-    overwriteDepletionPercentage = extractSetting("Use custom depletion percentage",moduleIdentifier,selectedSettings,moduleData)
-    customDepletionPercentage = extractSetting("Custom Depletion Percentage",moduleIdentifier,selectedSettings,moduleData)/100.0
-    geneGroups = json.load(open('modules/geneGroups.json'))
-    genesToDeplete = {}
-    
-    for target,depletionPercentage in depletionTargets:
-        print(target,depletionPercentage)
-        if target.startswith("Group:"):
-            groupName = target.split("Group:")[1]
-            # Expand group into individual genes
-            for gene in geneGroups[groupName]:
-                genesToDeplete[gene] = customDepletionPercentage if overwriteDepletionPercentage else depletionPercentage
-        else:
-            genesToDeplete[target] = customDepletionPercentage if overwriteDepletionPercentage else depletionPercentage
-
-    Protein.proteinImmunoaffinityDepletion(genesToDeplete)
-    return Protein.getAllProteins()
-
-def molecular_weight_cutoff(moduleIdentifier, selectedSettings,moduleData):
-    """
-    Filter proteins by molecular weight, keeping those above or below a user-defined cutoff.
-
-    Settings (molecular_weight_cutoff.json):
-    - "Weight Cutoff (kDa)" (DecimalField): numeric threshold.
-    - "Keep Below/Above Cutoff" (ChoiceField): maps UI labels to "below" or "above" behavior.
-
-    :param moduleIdentifier: Identifier for the current module.
-    :param selectedSettings: Dict with cutoff value and whether to keep proteins above or below it.
-    :param moduleData: Module definitions supplying the mapping for the keep-above/below choice.
-    :return: Updated list of Protein objects after weight-based filtering.
-
-    """
-    weight_cutoff = extractSetting("Weight Cutoff (kDa)",moduleIdentifier,selectedSettings,moduleData)
-    # ChoiceField: resolve label to behavior string
-    keep_option = extractSetting("Keep Below/Above Cutoff",moduleIdentifier,selectedSettings,moduleData)
-    if keep_option == "above":
-        Protein.depleteProteinsByWeight(minWeight=weight_cutoff,maxWeight=None)
-    elif keep_option == "below":
-        Protein.depleteProteinsByWeight(minWeight=None,maxWeight=weight_cutoff)
-    else: 
-        raise ValueError(f"Invalid option for Keep Below/Above Cutoff: {keep_option}")
-    return Protein.getAllProteins()
-
-
-def signal_peptide_removal(moduleIdentifier, selectedSettings,moduleData):
-    """
-    Remove signal peptides from proteins according to the selected database configuration.
-
-    Settings (signal_peptide_removal.json):
-    - "Database" (ChoiceField): selects the database key (e.g., "uniprot") used by the cleavage logic.
-
-    :param moduleIdentifier: Identifier for the current module.
-    :param selectedSettings: Dict indicating which database option to use for cleavage.
-    :param moduleData: Module definitions used to resolve the chosen database option.
-    :return: Updated list of Protein objects after signal peptide cleavage.
-
-    """
-    # ChoiceField: resolve label to database key
-    database = extractSetting("Database",moduleIdentifier,selectedSettings,moduleData)
-    Protein.signalPeptideCleavage()
-    return Protein.getAllProteins()
-
-
-def isoelectric_focussing(moduleIdentifier, selectedSettings,moduleData):
-    """
-    Fractionate proteins by isoelectric point, keeping those inside or outside a specified pI range.
-
-    Settings (isoelectric_focussing.json):
-    - "Keep inside/outside isoelectric point range" (ChoiceField): maps to "inside" or "outside" behavior.
-    - "Minimum pI" (DecimalField): lower bound of pI window.
-    - "Maximum pI" (DecimalField): upper bound of pI window.
-
-    :param moduleIdentifier: Identifier for the current module.
-    :param selectedSettings: Dict with min/max pI values and the keep-inside/outside selection.
-    :param moduleData: Module definitions resolving the keep-inside/outside option mapping.
-    :return: Updated list of Protein objects after pI-based fractionation.
-
-    """
-    keepInsideOutside = extractSetting("Keep inside/outside isoelectric point range",moduleIdentifier,selectedSettings,moduleData)
-    pI_min = extractSetting("Minimum pI",moduleIdentifier,selectedSettings,moduleData)
-    pI_max = extractSetting("Maximum pI",moduleIdentifier,selectedSettings,moduleData)
-    Protein.fractionateProteinsByIsoelectricPoint(keepInsideOutsideSelection=keepInsideOutside,minPI=pI_min,maxPI=pI_max)
-    return Protein.getAllProteins()
-    
-def reversed_phase_chromatography(moduleIdentifier, selectedSettings,moduleData):
-    """
-    Fractionate proteins by hydrophobicity, keeping those inside or outside a specified hydrophobicity range.
-
-    Settings (reversed_phase_chromatography.json):
-    - "Keep inside/outside hydrophobicity range" (ChoiceField): maps to "inside" or "outside" behavior.
-    - "Minimum hydrophobicity" (DecimalField): lower bound of hydrophobicity window.
-    - "Maximum hydrophobicity" (DecimalField): upper bound of hydrophobicity window.
-
-    :param moduleIdentifier: Identifier for the current module.
-    :param selectedSettings: Dict with min/max hydrophobicity values and the keep-inside/outside selection.
-    :param moduleData: Module definitions resolving the keep-inside/outside option mapping.
-    :return: Updated list of Protein objects after hydrophobicity-based fractionation.
-
-    """
-    keepInsideOutside = extractSetting("Keep inside/outside hydrophobicity range",moduleIdentifier,selectedSettings,moduleData)
-    hydrophobicity_min = extractSetting("Minimum hydrophobicity",moduleIdentifier,selectedSettings,moduleData)
-    hydrophobicity_max = extractSetting("Maximum hydrophobicity",moduleIdentifier,selectedSettings,moduleData)
-    Protein.fractionateProteinsByHydrophobicity(keepInsideOutsideSelection=keepInsideOutside,minHydrophobicity=hydrophobicity_min,maxHydrophobicity=hydrophobicity_max)
-    return Protein.getAllProteins()
-    
-def SDS_page_fractionation(moduleIdentifier, selectedSettings,moduleData):
-    """
-    Fractionate proteins by molecular weight, keeping those inside or outside a specified weight range.
-
-    Settings (SDS_page_fractionation.json):
-    - "Keep inside/outside weight range" (ChoiceField): maps to "inside" or "outside" behavior.
-    - "Minimum weight (kDa)" (DecimalField): lower bound of weight window.
-    - "Maximum weight (kDa)" (DecimalField): upper bound of weight window.
-
-    :param moduleIdentifier: Identifier for the current module.
-    :param selectedSettings: Dict with min/max weight values and the keep-inside/outside selection.
-    :param moduleData: Module definitions resolving the keep-inside/outside option mapping.
-    :return: Updated list of Protein objects after weight-based fractionation.
-
-    """
-    # ChoiceField: resolve label to behavior string
-    keepInsideOutside = extractSetting("Keep inside/outside molecular weight range",moduleIdentifier,selectedSettings,moduleData)
-    weight_min = extractSetting("Minimum weight (kDa)",moduleIdentifier,selectedSettings,moduleData)
-    weight_max = extractSetting("Maximum weight (kDa)",moduleIdentifier,selectedSettings,moduleData)
-    Protein.fractionateProteinsByMolecularWeight(keepInsideOutsideSelection=keepInsideOutside,minWeight=weight_min,maxWeight=weight_max)
-    return Protein.getAllProteins()
-    
-    
-def newModule(moduleIdentifier,selectedSettings,moduleData):
-    # The first step is to access the settings chosen by the user. 
-    
-    # We start by extracting the ChoiceField. This will be resolved to the internal values within the json file. 
-    choiceFieldChosenOption = extractSetting("A field where the user can choose from multiple options",moduleIdentifier,selectedSettings,moduleData)
-    # Next we extract the DecimalField where the user can enter their own number.
-    chosenNumber = extractSetting("A field where the user can enter their own number",moduleIdentifier,selectedSettings,moduleData)
-    # Next lets loop through all proteins and set their abundances to the user supplied values. 
-    
-    # First get all the proteins in a nice list
-    proteins = Protein.getAllProteins()
-
-    # Now lets loop through all the proteins
-    for protein in proteins:
-        # And set their abundance to the chosen number
-        protein.set_abundance(chosenNumber)
-    return proteins
-
-def exampleModule(moduleIdentifier,selectedSettings,moduleData):
-    # This is an example module that does nothing. It simply returns all proteins as is.
-    singleChoiceFieldOption = extractSetting("Single choice field",moduleIdentifier,selectedSettings,moduleData)
-    multipleChoiceFieldOptions = extractSetting("Multiple choice field",moduleIdentifier,selectedSettings,moduleData)
-    decimalFieldValue = extractSetting("Decimal field",moduleIdentifier,selectedSettings,moduleData)
-    booleanFieldValue = extractSetting("Boolean field",moduleIdentifier,selectedSettings,moduleData)
-    charFieldValue = extractSetting("Character field",moduleIdentifier,selectedSettings,moduleData)
-    
-    print(f"Single choice field selected option: {singleChoiceFieldOption}")
-    print(f"Multiple choice field selected options: {multipleChoiceFieldOptions}")
-    print(f"Decimal field value: {decimalFieldValue}")
-    print(f"Boolean field value: {booleanFieldValue}")
-    print(f"Character field value: {charFieldValue}")
-    
-    
-    return Protein.getAllProteins()
-
 

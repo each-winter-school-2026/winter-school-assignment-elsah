@@ -51,7 +51,7 @@ class IndexView(TemplateView):
             # Store a human-readable label for SEC
             column_label = None
             if module == "size_exclusion":
-                column_label = settings.get("SEC column") or settings.get("SEC columns")
+                column_label = settings.get("SEC column")
 
             
             if not sdsPageImgBase64:

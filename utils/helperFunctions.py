@@ -30,7 +30,19 @@ def extractSetting(settingName,moduleIdentifier,selectedSettings,moduleData):
     fieldType = settingsList.get("formtype",None)
     match fieldType:
         case "ChoiceField":
-            return currentModuleSettings["settings"][settingName]["options"][selectedSettings[settingName]]
+            opts = currentModuleSettings["settings"][settingName]["options"]
+            selected = selectedSettings[settingName]
+
+            # If frontend posted the label
+            if selected in opts:
+                return opts[selected]
+
+            # If frontend posted the internal value already
+            if selected in opts.values():
+                return selected
+
+            raise KeyError(selected)
+
         case "MultipleChoiceField":
             return [currentModuleSettings["settings"][settingName]["options"][option] for option in selectedSettings[settingName]]
         case "DecimalField":
