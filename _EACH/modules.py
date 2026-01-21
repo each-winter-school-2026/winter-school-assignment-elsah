@@ -14,7 +14,6 @@ def select(moduleIdentifier,selectedSettings,moduleData):
     :param selectedSettings: Dict of user-selected values for the active module.
     :param moduleData: Loaded JSON defining all modules and their settings (options, defaults, etc.).
     :return: SDS-PAGE plot generated from the proteins produced by the module.
-
     """
     match moduleIdentifier:
         case "fasta_input":
@@ -41,9 +40,8 @@ def select(moduleIdentifier,selectedSettings,moduleData):
         case "unique_module_identifier":
             proteins = newModule(moduleIdentifier,selectedSettings,moduleData)
             return virtualSDSPage_2DGaussian(proteins)
-        case "example_module":
-            # Does not perform any real processing; for demonstration only.
-            proteins = exampleModule(moduleIdentifier,selectedSettings,moduleData)
+        case "size_exclusion":
+            proteins = size_exclusion(moduleIdentifier, selectedSettings, moduleData)
             return virtualSDSPage_2DGaussian(proteins)
         case _: # Add new modules above 
             # Do not add modules below
@@ -70,6 +68,75 @@ def fasta_input(moduleIdentifier, selectedSettings,moduleData):
     for header, sequence in sequences.items():
         proteinList.append(Protein(header, sequence))
     return proteinList
+
+def size_exclusion(moduleIdentifier, selectedSettings, moduleData):
+    """
+    Size Exclusion Chromatography (SEC) fractionation (simple version).
+
+    Uses settings EXACTLY as named in size_exclusion.json:
+    - "Fractionation mode" -> "inside" or "outside"
+    - "SEC column" -> [col_min_kDa, col_max_kDa]
+    - "Minimum MW to keep (kDa)" -> float
+    - "Maximum MW to keep (kDa)" -> float
+
+    Effective window = intersection(column window, user window)
+    Then reuse Protein.fractionateProteinsByMolecularWeight().
+    """
+    keepInsideOutside = extractSetting("Fractionation mode", moduleIdentifier, selectedSettings, moduleData)
+
+    col_range = extractSetting("SEC column", moduleIdentifier, selectedSettings, moduleData)
+    if not isinstance(col_range, (list, tuple)) or len(col_range) != 2:
+        raise ValueError("SEC column setting must resolve to [min_kDa, max_kDa].")
+
+    col_min, col_max = float(col_range[0]), float(col_range[1])
+
+    user_min = float(extractSetting("Minimum MW to keep (kDa)", moduleIdentifier, selectedSettings, moduleData))
+    user_max = float(extractSetting("Maximum MW to keep (kDa)", moduleIdentifier, selectedSettings, moduleData))
+
+    # Sanity
+    if user_min > user_max:
+        user_min, user_max = user_max, user_min
+    user_min = max(user_min, 0.0)
+    user_max = max(user_max, 0.0)
+
+    # Effective collected MW window = intersection(column window, user window)
+    eff_min = max(col_min, user_min)
+    eff_max = min(col_max, user_max)
+
+    # If no overlap: "inside" keeps nothing, "outside" keeps everything
+    if eff_min > eff_max:
+        if keepInsideOutside == "inside":
+            for p in Protein.getAllProteins():
+                p.abundance = 0.0
+                p.modifications.append(
+                    f"SEC removed all proteins (no overlap: column {col_min}-{col_max} kDa, selected {user_min}-{user_max} kDa)"
+                )
+            return Protein.getAllProteins()
+
+        if keepInsideOutside == "outside":
+            for p in Protein.getAllProteins():
+                p.modifications.append(
+                    f"SEC kept all proteins (no overlap: column {col_min}-{col_max} kDa, selected {user_min}-{user_max} kDa)"
+                )
+            return Protein.getAllProteins()
+
+        raise ValueError(f"Invalid Fractionation mode: {keepInsideOutside}")
+
+    # Apply MW fractionation using existing helper
+    Protein.fractionateProteinsByMolecularWeight(
+        keepInsideOutsideSelection=keepInsideOutside,
+        minWeight=eff_min,
+        maxWeight=eff_max,
+    )
+
+    # Optional: annotate kept proteins
+    for p in Protein.getAllProteins():
+        if p.get_abundance() > 0.0:
+            p.modifications.append(
+                f"SEC kept: {eff_min}-{eff_max} kDa (column {col_min}-{col_max}, selected {user_min}-{user_max})"
+            )
+
+    return Protein.getAllProteins()
 
 def affinity_depletion(moduleIdentifier, selectedSettings,moduleData):
     """
