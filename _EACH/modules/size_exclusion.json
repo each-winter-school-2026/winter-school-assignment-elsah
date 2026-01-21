@@ -2,16 +2,16 @@
   "size_exclusion": {
     "id": "size_exclusion",
     "title": "Size Exclusion Chromatography",
-    "subtitle": "Fractionate proteins by apparent size using a column MW range and a collected MW window",
+    "subtitle": "Compare outcomes across multiple SEC columns",
     "icon": "icons/modules/placeholder.svg",
     "settings": {
       "Fractionation mode": {
         "formtype": "ChoiceField",
         "options": {
-          "Keep inside collected MW range (remove outside)": "inside",
-          "Keep outside collected MW range (remove inside)": "outside"
+          "Keep proteins within column fractionation range": "inside",
+          "Remove proteins within column fractionation range": "outside"
         },
-        "default": "Keep inside collected MW range (remove outside)",
+        "default": "Keep proteins within column fractionation range",
         "required": true
       },
       "SEC column": {
@@ -21,22 +21,8 @@
           "Superdex 200 (10–600 kDa)": [10.0, 600.0],
           "Sephadex G-25 (<5 kDa)": [0.0, 5.0]
         },
-        "default": "Superdex 200 (10–600 kDa)",
+        "default": ["Superdex 200 (10–600 kDa)"],
         "required": true
-      },
-      "Minimum MW to keep (kDa)": {
-        "formtype": "DecimalField",
-        "default": 20,
-        "min": 0.0,
-        "max": 10000.0,
-        "step": 10.0
-      },
-      "Maximum MW to keep (kDa)": {
-        "formtype": "DecimalField",
-        "default": 80.0,
-        "min": 0.0,
-        "max": 10000.0,
-        "step": 10.0
       }
     }
   }
